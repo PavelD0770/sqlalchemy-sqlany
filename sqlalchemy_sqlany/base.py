@@ -522,7 +522,8 @@ class SQLAnyDialect(default.DefaultDialect):
                  col."default" AS "default",
                  col.width AS "precision",
                  col.scale AS scale,
-                 col.width AS length
+                 col.width AS length,
+                 (SELECT c.remarks FROM sys.syscolumn c WHERE c.table_id=col.table_id AND c.column_id=col.column_id) as "comment"
           FROM sys.sysdomain t join sys.systabcol col on t.domain_id=col.domain_id
           WHERE col.table_id = :table_id
           ORDER BY col.column_id
@@ -532,16 +533,16 @@ class SQLAnyDialect(default.DefaultDialect):
 
         columns = []
         for (name, type_, nullable, autoincrement, default, precision, scale,
-             length) in results:
+             length, comment) in results:
             col_info = self._get_column_info(name, type_, bool(nullable),
                              bool(autoincrement), default, precision, scale,
-                             length)
+                             length, comment)
             columns.append(col_info)
 
         return columns
 
     def _get_column_info(self, name, type_, nullable, autoincrement, default,
-            precision, scale, length):
+            precision, scale, length, comment):
 
         coltype = self.ischema_names.get(type_, None)
 
@@ -573,7 +574,7 @@ class SQLAnyDialect(default.DefaultDialect):
             default = None
 
         column_info = dict(name=name, type=coltype, nullable=nullable,
-                           default=default, autoincrement=autoincrement)
+                           default=default, autoincrement=autoincrement, comment=comment,)
         return column_info
 
     @reflection.cache
